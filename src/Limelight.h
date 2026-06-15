@@ -223,12 +223,14 @@ typedef struct _DECODE_UNIT {
 #define VIDEO_FORMAT_H265_MAIN10 0x0200 // HEVC Main10 Profile
 #define VIDEO_FORMAT_AV1_MAIN8   0x1000 // AV1 Main 8-bit profile
 #define VIDEO_FORMAT_AV1_MAIN10  0x2000 // AV1 Main 10-bit profile
+#define VIDEO_FORMAT_PYROWAVE    0x010000 // PyroWave GPU wavelet codec (8-bit 4:2:0), Sunshine extension
 
 // Masks for clients to use to match video codecs without profile-specific details.
 #define VIDEO_FORMAT_MASK_H264  0x000F
 #define VIDEO_FORMAT_MASK_H265  0x0F00
 #define VIDEO_FORMAT_MASK_AV1   0xF000
 #define VIDEO_FORMAT_MASK_10BIT 0x2200
+#define VIDEO_FORMAT_MASK_PYROWAVE 0x0F0000 // group reserved for future PyroWave profiles
 
 // If set in the renderer capabilities field, this flag will cause audio/video data to
 // be submitted directly from the receive thread. This should only be specified if the
@@ -490,6 +492,7 @@ void LiInitializeConnectionCallbacks(PCONNECTION_LISTENER_CALLBACKS clCallbacks)
 #define SCM_HEVC_MAIN10 0x00200
 #define SCM_AV1_MAIN8   0x10000 // Sunshine extension
 #define SCM_AV1_MAIN10  0x20000 // Sunshine extension
+#define SCM_PYROWAVE    0x00800000 // PyroWave codec, Sunshine extension
 
 // SCM masks to identify various codec capabilities
 #define SCM_MASK_H264   SCM_H264
