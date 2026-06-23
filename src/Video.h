@@ -53,6 +53,12 @@ typedef struct _SS_PING {
     uint32_t sequenceNumber;
 } SS_PING, *PSS_PING;
 
+// Phase-offset pacing feedback (client -> Sunshine host, Sunshine extension).
+// Payload is a single little-endian int32: the client's measured phase offset in
+// microseconds (ideal_present_time - frame_done_time). Positive => server slows down
+// slightly, negative => speeds up. Mirrors pyrofling's PYRO_MESSAGE_PHASE_OFFSET.
+#define SS_PHASE_OFFSET_PTYPE 0x5510
+
 // Fields are big-endian
 #define SS_FRAME_FEC_PTYPE 0x5502
 typedef struct _SS_FRAME_FEC_STATUS {
