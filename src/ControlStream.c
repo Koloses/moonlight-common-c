@@ -441,9 +441,15 @@ void connectionSawFrame(uint32_t frameIndex) {
 
     if (now - intervalStartTimeMs >= CONN_STATUS_SAMPLE_PERIOD) {
         if (intervalTotalFrameCount != 0) {
-            // Notify the client of connection status changes based on frame loss rate
+            // Notify the client of connection status changes based on frame loss rate.
+            // Self-recovering codecs (PyroWave) refresh fully every frame, so a lost frame
+            // heals on the next one - it is not a "poor connection" the way a lost reference
+            // frame is for H.264/HEVC/AV1. Don't raise the poor-connection warning for them
+            // (matches pyrofling, which does not treat PyroWave loss as a stream problem).
             int frameLossPercent = 100 - (intervalGoodFrameCount * 100) / intervalTotalFrameCount;
-            if (lastConnectionStatusUpdate != CONN_STATUS_POOR &&
+            bool selfRecovering = (NegotiatedVideoFormat & VIDEO_FORMAT_MASK_PYROWAVE) != 0;
+            if (!selfRecovering &&
+                    lastConnectionStatusUpdate != CONN_STATUS_POOR &&
                     (frameLossPercent >= CONN_IMMEDIATE_POOR_LOSS_RATE ||
                      (frameLossPercent >= CONN_CONSECUTIVE_POOR_LOSS_RATE && lastIntervalLossPercentage >= CONN_CONSECUTIVE_POOR_LOSS_RATE))) {
                 // We require 2 consecutive intervals above CONN_CONSECUTIVE_POOR_LOSS_RATE or a single
