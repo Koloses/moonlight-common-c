@@ -95,6 +95,15 @@ static void cleanupFrameState(void) {
     nalChainDataLength = 0;
 }
 
+// Some codecs are "self-recovering": every frame fully refreshes the picture (PyroWave is
+// effectively intra-refreshing), so a lost or incomplete frame heals on the very next frame.
+// For these, packet loss must NOT trigger the IDR-wait/request machinery or be treated as a
+// stream-breaking event - that only produces needless IDR-request spam and stalls. Mirrors
+// pyrofling's own "self-recovering" handling of PyroWave.
+static bool isSelfRecoveringFormat(void) {
+    return (NegotiatedVideoFormat & VIDEO_FORMAT_MASK_PYROWAVE) != 0;
+}
+
 // Cleanup frame state and set that we're waiting for an IDR Frame
 static void dropFrameState(void) {
     // This may only be called at frame boundaries
@@ -102,6 +111,14 @@ static void dropFrameState(void) {
 
     // We're dropping frame state now
     dropStatePending = false;
+
+    if (isSelfRecoveringFormat()) {
+        // Discard the incomplete frame and move on; the next frame is a full refresh.
+        // Do not wait for or request an IDR, and don't accumulate toward the drop limit.
+        consecutiveFrameDrops = 0;
+        cleanupFrameState();
+        return;
+    }
 
     if (strictIdrFrameWait || !idrFrameProcessed || waitingForIdrFrame) {
         // We'll need an IDR frame now if we're in non-RFI mode, if we've never
@@ -518,8 +535,11 @@ static void reassembleFrame(int frameNumber, bool frameIsLTR) {
                 if (LbqOfferQueueItem(&decodeUnitQueue, qdu, &qdu->entry) == LBQ_BOUND_EXCEEDED) {
                     Limelog("Video decode unit queue overflow\n");
 
-                    // RFI recovery is not supported here
-                    waitingForIdrFrame = true;
+                    // RFI recovery is not supported here (skip the IDR wait for
+                    // self-recovering codecs, which heal on the next frame)
+                    if (!isSelfRecoveringFormat()) {
+                        waitingForIdrFrame = true;
+                    }
 
                     // Clear NAL state for the frame that we failed to enqueue
                     nalChainHead = qdu->decodeUnit.bufferList;
@@ -532,8 +552,10 @@ static void reassembleFrame(int frameNumber, bool frameIsLTR) {
                     // Free all frames in the decode unit queue
                     freeDecodeUnitList(LbqFlushQueueItems(&decodeUnitQueue));
 
-                    // Request an IDR frame to recover
-                    LiRequestIdrFrame();
+                    // Request an IDR frame to recover (not needed for self-recovering codecs)
+                    if (!isSelfRecoveringFormat()) {
+                        LiRequestIdrFrame();
+                    }
                     return;
                 }
             }
@@ -1140,6 +1162,14 @@ void notifyFrameLost(unsigned int frameNumber, bool speculative) {
 
     // Drop state and determine if we need an IDR frame or if RFI is okay
     dropFrameState();
+
+    // Self-recovering codecs (PyroWave): no IDR/RFI needed - just skip past the lost
+    // frame and inform the host. The next frame fully refreshes the picture.
+    if (isSelfRecoveringFormat()) {
+        nextFrameNumber = frameNumber + 1;
+        connectionDetectedFrameLoss(startFrameNumber, frameNumber);
+        return;
+    }
 
     // If dropFrameState() determined that RFI was usable, issue it now
     if (!waitingForIdrFrame) {
