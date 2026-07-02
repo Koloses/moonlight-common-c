@@ -102,6 +102,11 @@ static bool isSelfRecoveringFormat(void) {
     return (NegotiatedVideoFormat & VIDEO_FORMAT_MASK_PYROWAVE) != 0;
 }
 
+// Fork extension: set when a packet-loss gap inside a PyroWave frame was
+// tolerated; the next queued fragment is tagged BUFFER_TYPE_GAP so the
+// decoder can resynchronize its parser at the loss point.
+static bool pyroWaveGapPending;
+
 // Cleanup frame state and set that we're waiting for an IDR Frame
 static void dropFrameState(void) {
     // This may only be called at frame boundaries
@@ -659,6 +664,15 @@ static void queueFragment(PLENTRY_INTERNAL* existingEntry, char* data, int offse
 
         entry->entry.bufferType = getBufferFlags(entry->entry.data, entry->entry.length);
 
+        // Fork extension (PyroWave partial frames): tag the first fragment
+        // after a tolerated packet-loss gap so the decoder can resynchronize
+        // its bitstream parser exactly at the loss point instead of
+        // misparsing the remainder of the frame.
+        if (pyroWaveGapPending) {
+            entry->entry.bufferType = BUFFER_TYPE_GAP;
+            pyroWaveGapPending = false;
+        }
+
         nalChainDataLength += entry->entry.length;
 
         if (nalChainTail == NULL) {
@@ -807,9 +821,9 @@ static void processRtpPayload(PNV_VIDEO_PACKET videoPacket, int length,
             (!(flags & FLAG_SOF) && streamPacketIndex != U24(lastPacketInStream + 1))) {
         // Self-recovering codecs (PyroWave): a FORWARD gap inside a frame is
         // expected when the RTP queue delivers the surviving packets of an
-        // FEC-unrecoverable frame. Block packets are RTP-payload aligned, so
-        // the bitstream parser resyncs at the next payload; tolerate the gap
-        // instead of dropping the rest of the frame.
+        // FEC-unrecoverable frame. Tolerate the gap instead of dropping the
+        // rest of the frame, and tag the fragment that follows it
+        // (BUFFER_TYPE_GAP) so the decoder resynchronizes its parser there.
         if (!(isSelfRecoveringFormat() && decodingFrame &&
                 !isBefore24(streamPacketIndex, U24(lastPacketInStream + 1)))) {
             Limelog("Depacketizer detected corrupt frame: %d", frameIndex);
@@ -823,6 +837,10 @@ static void processRtpPayload(PNV_VIDEO_PACKET videoPacket, int length,
                 connectionDetectedFrameLoss(startFrameNumber, frameIndex);
             }
             return;
+        }
+        else {
+            // Gap tolerated: mark the next queued fragment for parser resync.
+            pyroWaveGapPending = true;
         }
     }
 
