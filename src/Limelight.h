@@ -100,6 +100,13 @@ typedef struct _STREAM_CONFIGURATION {
     // in /launch and /resume requests.
     char remoteInputAesKey[16];
     char remoteInputAesIv[16];
+
+    // PyroWave (Sunshine extension): opt-in adaptive streaming. When set, the
+    // host may raise FEC (adaptiveFec) and/or temporarily lower the encode
+    // bitrate (adaptiveBitrate) in response to observed packet loss. Both
+    // default to off (zeroed by LiInitializeStreamConfiguration).
+    int pyroWaveAdaptiveFec;
+    int pyroWaveAdaptiveBitrate;
 } STREAM_CONFIGURATION, *PSTREAM_CONFIGURATION;
 
 // Use this function to zero the stream configuration when allocated on the stack or heap
