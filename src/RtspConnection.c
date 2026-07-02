@@ -1092,11 +1092,20 @@ int performRtspHandshake(PSERVER_INFORMATION serverInfo) {
             strstr(response.payload, "PYROWAVE/90000")) {
             // PyroWave is an experimental GPU wavelet codec (Sunshine extension).
             // Selected with highest precedence when both sides advertise it.
-            // Prefer the 4:4:4 profile when both sides support it; the SDP
-            // chromaSamplingType attribute (driven by VIDEO_FORMAT_MASK_YUV444)
-            // tells the host which one was chosen.
-            if ((StreamConfig.supportedVideoFormats & VIDEO_FORMAT_PYROWAVE_444) &&
-                (serverInfo->serverCodecModeSupport & SCM_PYROWAVE_444)) {
+            // Pick the best profile both sides support; the SDP attributes
+            // chromaSamplingType (VIDEO_FORMAT_MASK_YUV444) and
+            // dynamicRangeMode (VIDEO_FORMAT_MASK_10BIT) tell the host which
+            // one was chosen.
+            if ((StreamConfig.supportedVideoFormats & VIDEO_FORMAT_PYROWAVE_HDR10_444) &&
+                (serverInfo->serverCodecModeSupport & SCM_PYROWAVE_HDR10_444)) {
+                NegotiatedVideoFormat = VIDEO_FORMAT_PYROWAVE_HDR10_444;
+            }
+            else if ((StreamConfig.supportedVideoFormats & VIDEO_FORMAT_PYROWAVE_HDR10) &&
+                     (serverInfo->serverCodecModeSupport & SCM_PYROWAVE_HDR10)) {
+                NegotiatedVideoFormat = VIDEO_FORMAT_PYROWAVE_HDR10;
+            }
+            else if ((StreamConfig.supportedVideoFormats & VIDEO_FORMAT_PYROWAVE_444) &&
+                     (serverInfo->serverCodecModeSupport & SCM_PYROWAVE_444)) {
                 NegotiatedVideoFormat = VIDEO_FORMAT_PYROWAVE_444;
             }
             else {

@@ -241,13 +241,15 @@ typedef struct _DECODE_UNIT {
 #define VIDEO_FORMAT_AV1_HIGH10_444  0x8000 // AV1 High 4:4:4 10-bit profile
 #define VIDEO_FORMAT_PYROWAVE        0x010000 // PyroWave GPU wavelet codec (8-bit 4:2:0), Sunshine extension
 #define VIDEO_FORMAT_PYROWAVE_444    0x020000 // PyroWave 8-bit 4:4:4 profile, Sunshine extension
+#define VIDEO_FORMAT_PYROWAVE_HDR10  0x040000 // PyroWave 10-bit 4:2:0 HDR10 (BT.2020 + PQ), Sunshine extension
+#define VIDEO_FORMAT_PYROWAVE_HDR10_444 0x080000 // PyroWave 10-bit 4:4:4 HDR10, Sunshine extension
 
 // Masks for clients to use to match video codecs without profile-specific details.
 #define VIDEO_FORMAT_MASK_H264   0x000F
 #define VIDEO_FORMAT_MASK_H265   0x0F00
 #define VIDEO_FORMAT_MASK_AV1    0xF000
-#define VIDEO_FORMAT_MASK_10BIT  0xAA00
-#define VIDEO_FORMAT_MASK_YUV444 0x2CC04
+#define VIDEO_FORMAT_MASK_10BIT  0xCAA00
+#define VIDEO_FORMAT_MASK_YUV444 0xACC04
 #define VIDEO_FORMAT_MASK_PYROWAVE 0x0F0000 // group reserved for future PyroWave profiles
 
 // If set in the renderer capabilities field, this flag will cause audio/video data to
@@ -525,13 +527,15 @@ void LiInitializeConnectionCallbacks(PCONNECTION_LISTENER_CALLBACKS clCallbacks)
 #define SCM_AV1_HIGH10_444  0x00400000 // Sunshine extension
 #define SCM_PYROWAVE        0x00800000 // PyroWave codec, Sunshine extension
 #define SCM_PYROWAVE_444    0x01000000 // PyroWave 4:4:4, Sunshine extension
+#define SCM_PYROWAVE_HDR10  0x02000000 // PyroWave HDR10 (10-bit BT.2020 PQ), Sunshine extension
+#define SCM_PYROWAVE_HDR10_444 0x04000000 // PyroWave HDR10 4:4:4, Sunshine extension
 
 // SCM masks to identify various codec capabilities
 #define SCM_MASK_H264   (SCM_H264 | SCM_H264_HIGH8_444)
 #define SCM_MASK_HEVC   (SCM_HEVC | SCM_HEVC_MAIN10 | SCM_HEVC_REXT8_444 | SCM_HEVC_REXT10_444)
 #define SCM_MASK_AV1    (SCM_AV1_MAIN8 | SCM_AV1_MAIN10 | SCM_AV1_HIGH8_444 | SCM_AV1_HIGH10_444)
-#define SCM_MASK_10BIT  (SCM_HEVC_MAIN10 | SCM_HEVC_REXT10_444 | SCM_AV1_MAIN10 | SCM_AV1_HIGH10_444)
-#define SCM_MASK_YUV444 (SCM_H264_HIGH8_444 | SCM_HEVC_REXT8_444 | SCM_HEVC_REXT10_444 | SCM_AV1_HIGH8_444 | SCM_AV1_HIGH10_444)
+#define SCM_MASK_10BIT  (SCM_HEVC_MAIN10 | SCM_HEVC_REXT10_444 | SCM_AV1_MAIN10 | SCM_AV1_HIGH10_444 | SCM_PYROWAVE_HDR10 | SCM_PYROWAVE_HDR10_444)
+#define SCM_MASK_YUV444 (SCM_H264_HIGH8_444 | SCM_HEVC_REXT8_444 | SCM_HEVC_REXT10_444 | SCM_AV1_HIGH8_444 | SCM_AV1_HIGH10_444 | SCM_PYROWAVE_444 | SCM_PYROWAVE_HDR10_444)
 
 typedef struct _SERVER_INFORMATION {
     // Server host name or IP address in text form
