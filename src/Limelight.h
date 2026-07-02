@@ -119,6 +119,10 @@ void LiInitializeStreamConfiguration(PSTREAM_CONFIGURATION streamConfig);
 #define BUFFER_TYPE_SPS      0x01
 #define BUFFER_TYPE_PPS      0x02
 #define BUFFER_TYPE_VPS      0x03
+// Fork extension (PyroWave partial frames): picture data that immediately
+// follows a tolerated packet-loss gap. The decoder must resynchronize its
+// bitstream parser at the start of this buffer (or truncate the frame there).
+#define BUFFER_TYPE_GAP      0x04
 
 typedef struct _LENTRY {
     // Pointer to the next entry or NULL if this is the last entry
